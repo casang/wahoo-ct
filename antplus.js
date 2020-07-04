@@ -1,5 +1,7 @@
 'use strict';
 
+const debugCSC = require('debug')('csc');
+
 const Ant = require('/home/pi/ant-plus');
 const stick = new Ant.GarminStick2();
 const heartRateSensor = new Ant.HeartRateSensor(stick);
@@ -8,27 +10,30 @@ speedCadenceSensor.setWheelCircumference(2.120); //Wheel circumference in meters
 
 heartRateSensor.on('hbData', data => {
   var hr = data.ComputedHeartRate;
-  console.log(`heart rate: ${hr}`);
+  debugCSC(`heart rate: ${hr}`);
   process.send ({ heartRate: hr });
 });
 
-//seedCadenceSensor.on('hbData', data => {
 speedCadenceSensor.on('cadenceData', data => {
-    console.log(`speed/cadence: ${data.CalculatedCadence}`);
-    //process.send (Math.round (data.CalculatedCadence));
+  debugCSC(`speed/cadence: ${data.CalculatedCadence}`);
+  //process.send (Math.round (data.CalculatedCadence));
 
-    process.send ({ crankRev: data.CumulativeCadenceRevolutionCount });
-    process.send ({ crankTime: data.CadenceEventTime });
+  process.send ({ crankRev: data.CumulativeCadenceRevolutionCount });
+  process.send ({ crankTime: data.CadenceEventTime });
 });
 
 speedCadenceSensor.on('speedData', data => {
-    console.log(`speed/cadence: ${data.CalculatedSpeed}`);
+  debugCSC(`speed/cadence: ${data.CalculatedSpeed}`);
 });
 
 stick.on('startup', function () {
-	console.log('Sticker ANT+ On');
-    heartRateSensor.attach(2, 0);
-    speedCadenceSensor.attach(1, 0);
+	console.log('stick ANT+ On');
+  heartRateSensor.attach(2, 0);
+  speedCadenceSensor.attach(1, 0);
+});
+
+stick.on('shutdown', function () {
+	console.log('stick ANT+ Shutdown');
 });
 
 if (!stick.open()) {
@@ -36,9 +41,10 @@ if (!stick.open()) {
 }
 
 process.on('message', cmd => {
-    //console.log(`Message Chield: ${cmd}`)
-    if (cmd == 'terminate'){
+  //console.log ('cmd:', cmd);
+  if (cmd.terminate != null){
+    if (stick)
       stick.close ();
-      process.exit();
-    }
-  });
+    process.exit();
+  }
+});

@@ -1,3 +1,5 @@
+'use strict'
+
 const debugCSP = require('debug')('csp');
 
 const seriportpath = '/home/pi/node-serialport/node_modules/serialport';
@@ -8,6 +10,7 @@ const path = "/dev/ttyUSB_FTDI"
 var SerialPort = require(seriportpath);
 var port = null;
 var ctInPro = false;
+var gradeReality = 1;
 
 var openCT = function() {
   fs.access(path, fs.F_OK, (err) => {
@@ -44,12 +47,15 @@ var procFromCT = function() {
     powerCT = powerCT << 1;
     powerCT = powerCT + (buffCT[6] & 0x1);
 
+    powerCT = 200 + 50 * Math.random() - 50 * Math.random();
+
     debugCSP('power:', powerCT);
     process.send ({ power: powerCT });
   }
 }
 
 var rcvFromCT = function(data) {
+  var i = 0;
   for (i = 0; i < data.byteLength; i++)
   {
     if (SyncCT)
@@ -73,8 +79,7 @@ var rcvFromCT = function(data) {
   //console.log(data);
 }
 
-//var sout = "350000160800E0590000161000E074000016185DC127000016241EE05E0000162C5FE0350000163400E0210000163810C2290000164000E0"
-var soutBase = [0x35, 0x00, 0x00, 0x16, 0x08, 0x00, 0xE0, 
+var sout = [0x35, 0x00, 0x00, 0x16, 0x08, 0x00, 0xE0, 
             0x59, 0x00, 0x00, 0x16, 0x10, 0x00, 0xE0, 
             0x74, 0x00, 0x00, 0x16, 0x18, 0x5D, 0xC1, 
             0x27, 0x00, 0x00, 0x16, 0x24, 0x1E, 0xE0, 
@@ -91,18 +96,19 @@ var sendToCT = function() {
   else if (ctInPro){
     port.write (sout);
   }
-  setTimeout(sendToCT, 1000);
+  setTimeout(sendToCT, 500);
 }
 
 var adjustBufferCT = function (grade){
   var g = 0;
   
-  sout = soutBase;
-  if (grade){
+  if (grade < 0)
+    grade = 0;
+  if (grade >= 0){
     g = grade;
-    sout[5] = 53 * g * gradeReality / 75
-    sout[0] = 53 - sout[5];
-  }
+    sout[5] = 0x35 * g * gradeReality / 75
+    sout[0] = 0x35 - sout[5];
+  } 
   console.log ('grade no CT:', g);
 }
 
@@ -123,7 +129,8 @@ process.on('message', (cmd) => {
     console.log ('Computrainner in Pro Mode:', ctInPro);
   }
 
-  adjustBufferCT (cmd.grade);
+  if (cmd.grade != null)
+    adjustBufferCT (cmd.grade);
 });
 
 //let buf = Buffer (sout);
