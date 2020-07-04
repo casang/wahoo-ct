@@ -46,9 +46,6 @@ var procFromCT = function() {
     powerCT = powerCT + (buffCT[5] & 0x7f);
     powerCT = powerCT << 1;
     powerCT = powerCT + (buffCT[6] & 0x1);
-
-    powerCT = 200 + 50 * Math.random() - 50 * Math.random();
-
     debugCSP('power:', powerCT);
     process.send ({ power: powerCT });
   }
